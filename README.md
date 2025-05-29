@@ -55,7 +55,7 @@ Run the data processing script to generate breakout candidates:
 
 This will output breakout_candidates.csv and generate the interactive plot.
 
-### Step 3: LAunch the Streamlit App
+### Step 3: Launch the Streamlit App
 
 Start the interactive dashboard with:
 
