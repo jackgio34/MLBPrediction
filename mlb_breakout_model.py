@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics.pairwise import cosine_similarity
 import plotly.express as px
 import os
 
@@ -22,8 +23,8 @@ def load_and_merge_data(expected_files, ev_files):
         pd.DataFrame: Combined and cleaned player stat data across all years.
     """
      
-    all_data = []
-    for expected, ev in zip(expected_files, ev_files):
+     all_data = []
+     for expected, ev in zip(expected_files, ev_files):
         expected_df = pd.read_csv(expected)
         ev_df = pd.read_csv(ev)
         merged = pd.merge(expected_df, ev_df, on='player_id', suffixes=('_est', '_ev'))
@@ -44,7 +45,7 @@ def load_and_merge_data(expected_files, ev_files):
         merged = merged[['player_id', 'name', 'year', *METRICS]].dropna()
         merged['year'] = merged['year'].astype(int)
         all_data.append(merged)
-    return pd.concat(all_data, ignore_index=True)
+     return pd.concat(all_data, ignore_index=True)
 
 def calculate_weighted_averages(df):
 
@@ -101,6 +102,32 @@ def compute_similarity_and_breakout(df, grouped):
     grouped['breakout_score'] = grouped[METRICS].mean(axis=1)
     grouped['breakout_index'] = 0.7 * grouped['breakout_score'] + 0.3 * grouped['superstar_similarity']
 
+     # --- Compare to established players ---
+    pre2024_ids = df[df['year'].isin([2022, 2023])]['player_id'].unique()
+    established_df = df[df['player_id'].isin(pre2024_ids) & df['year'].isin([2024, 2025])].copy()
+    established_df['weight'] = established_df['year'].map(WEIGHTS)
+
+    for metric in METRICS:
+        established_df[f'{metric}_w'] = established_df[metric] * established_df['weight']
+
+    established_grouped = established_df.groupby(['player_id', 'name'])[[f'{m}_w' for m in METRICS]].sum()
+    established_grouped.columns = METRICS
+    established_grouped = established_grouped.reset_index()
+
+    # Normalize both sets
+    all_metrics = pd.concat([grouped[METRICS], established_grouped[METRICS]], ignore_index=True)
+    scaler_all = StandardScaler().fit(all_metrics)
+
+    breakout_scaled = scaler_all.transform(grouped[METRICS])
+    established_scaled = scaler_all.transform(established_grouped[METRICS])
+
+    similarities = cosine_similarity(breakout_scaled, established_scaled)
+    most_similar_indices = np.argmax(similarities, axis=1)
+    grouped['most_similar_established_player'] = [
+        established_grouped.iloc[idx]['name'] for idx in most_similar_indices
+    ]
+    
+
     return grouped.reset_index()
 
 def generate_interactive_plot(df):
@@ -124,6 +151,20 @@ def generate_interactive_plot(df):
     fig.update_traces(textposition='top center')
     fig.show()
 
+def compute_established_similarity(breakout_df, established_df):
+    scaler = StandardScaler()
+    breakout_scaled = scaler.fit_transform(breakout_df[METRICS])
+    established_scaled = scaler.transform(established_df[METRICS])
+
+    similarities = cosine_similarity(breakout_scaled, established_scaled)
+    most_similar_indices = similarities.argmax(axis=1)
+    best_scores = similarities[np.arange(len(breakout_df)), most_similar_indices]
+
+    breakout_df['most_similar_established'] = established_df.iloc[most_similar_indices]['name'].values
+    breakout_df['similarity_to_established'] = best_scores
+
+    return breakout_df
+
 # Main Script
 if __name__ == "__main__":
     combined_data = load_and_merge_data(EXPECTED_FILES, EV_FILES)
@@ -134,6 +175,9 @@ if __name__ == "__main__":
     final_results.to_csv("breakout_candidates.csv", index=False)
     print("Top Breakout Candidates:\n")
     print(final_results[['name', 'superstar_similarity', 'breakout_index']])
+
+    # Save full stats data to CSV for use in Streamlit
+    combined_data.to_csv("full_stats_combined.csv", index=False)
 
     # Interactive plot
     generate_interactive_plot(final_results)
