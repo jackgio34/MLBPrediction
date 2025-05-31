@@ -1,46 +1,59 @@
 # MLB Breakout Predictor
 
-This project uses Statcast data to identify potential breakout Major League Baseball (MLB) players by evaluating offensive metrics and comparing them to elite-level performance benchmarks.
+This project uses Statcast data to identify potential breakout Major League Baseball (MLB) players by evaluating offensive metrics and comparing them to elite-level performance benchmarks. It compares offensive skill sets to historical superstar trends and projects future performance over a 4-year horizon.
+
+# MLB Breakout Predictor
 
 ## Project Overview
 
-The program:
-- Loads and merges expected offensive stats and exit velocity data from multiple seasons.
-- Computes weighted averages favoring more recent years (2024 and 2025).
-- Filters for breakout candidates who did **not** appear in 2022 or 2023.
-- Calculates a **superstar similarity score** and a **breakout index** for each candidate.
-- Outputs a ranked list of breakout candidates and visualizes the results in an interactive Plotly scatter plot.
+The pipeline performs the following:
 
-## Features
+- Loads and merges **expected offensive metrics** and **exit velocity data**.
+- Applies **supplemental player age data** from 2023 and 2024 to fill in gaps.
+- Filters for breakout candidates who debuted **in 2023 or 2024**.
+- Calculates a **superstar similarity score** and a **breakout index**.
+- Projects performance both historically (via player analogs) and statistically (via regression).
+- Visualizes individual projections in an interactive Streamlit dashboard.
 
-- Dynamic player filtering by name with an autocomplete dropdown.
-- Interactive visualizations using Plotly and Streamlit.
-- Stat comparison to elite performers in 2025.
-- Player similarity matching for contextual analysis.
-- Side-by-side comparisons of year-over-year stat changes (e.g., 2024 to 2025).
+## Included Files
 
-## Files Included
+### 🔧 Scripts
 
-- `mlb_breakout_model.py` – Core script for calculating breakout scores and generating output.
-- `InteractiveDropdown.py` – Streamlit application for interactive exploration of breakout candidates.
-- `breakout_candidates.csv` – Model-generated output including breakout index and similarity metrics.
-- `full_stats_combined.csv` – Combined player stat history used for comparative lookups.
-- `expected_stats 22.csv` to `expected_stats 25.csv` – Expected offensive statistics by year.
-- `exit_velocity22.csv` to `exit_velocity25.csv` – Exit velocity and batted ball data by year.
+- `main.py` – Entry point to run the full data pipeline and generate all outputs.
+- `data_loader.py` – Loads and merges all Statcast and age data; cleans and aligns required metrics.
+- `candidate_filter.py` – Filters valid breakout candidates based on debut years and data completeness.
+- `weighted_metrics.py` – Computes weighted multi-year stat averages with recent seasons prioritized.
+- `similarity_and_breakout.py` – Computes breakout scores and superstar similarity.
+- `projections.py` – Generates historical and regression-based stat projections.
+- `app.py` – Streamlit dashboard for exploring player stats and projections.
 
-## Metrics Used
+### CSV Data
 
-Metrics computed and analyzed include:
+- `batting.csv` – Core batting data including player stats and identifiers.
+- `mlb-player-stats-Batters2023.csv`, `mlb-player-stats-Batters2024.csv` – Supplemental files for 2023 and 2024 player age.
+- `expected_stats 23.csv`, `expected_stats 24.csv` – Yearly expected offensive metrics (xwOBA, xBA, xSLG, etc.).
+- `exit_velocity 23.csv`, `exit_velocity 24.csv` – Exit velocity and launch angle stats.
+- `breakout_candidate_metrics.csv` – Final list of candidate players with scores and raw metrics.
+- `historic_projected_breakouts.csv`, `linear_reg_projected_breakouts.csv` – Future stat projections by method.
 
-- `exit_velocity`: Average exit velocity of batted balls.
-- `launch_angle`: Average launch angle of batted balls.
-- `barrel_pct`: Percentage of batted balls classified as "barrels".
-- `hard_hit_pct`: Percentage of batted balls hit 95+ mph.
-- `xwOBA`: Expected weighted on-base average.
-- `xBA`: Expected batting average.
-- `xSLG`: Expected slugging percentage.
+## 📈 Key Metrics
 
-## How to Run the Project
+The following advanced metrics are calculated and compared:
+
+| Metric                | Description                                             |
+|-----------------------|---------------------------------------------------------|
+| `exit_velocity_avg`   | Average exit velocity of batted balls                   |
+| `launch_angle_avg`    | Average launch angle                                    |
+| `barrel_batted_rate`  | % of batted balls that are barrels                      |
+| `hard_hit_percent`    | % of batted balls hit 95+ mph                           |
+| `xwoba`               | Expected weighted on-base average                       |
+| `xba`                 | Expected batting average                                |
+| `xslg`                | Expected slugging percentage                            |
+| `player_age`          | Derived or merged player age by season                 |
+| `breakout_score`      | Overall breakout potential score                        |
+| `superstar_similarity`| Similarity score to historical superstar performance    |
+
+## How to Run
 
 ### Step 1: Install Required Libraries
 
@@ -51,25 +64,20 @@ Ensure Python 3.8+ is installed. Then install dependencies:
 ### Step 2: Generate Breakout Candidates
 Run the data processing script to generate breakout candidates:
 
-  python mlb_breakout_model.py
+  python main.py
 
-This will output breakout_candidates.csv and generate the interactive plot.
+This will output linear_reg_projected_breakouts, historic_projected_breakouts, and breakout_candidate_metrics.csv.
 
 ### Step 3: Launch the Streamlit App
 
 Start the interactive dashboard with:
 
-  streamlit run InteractiveDropdown.py
+  streamlit run app.py
 
-This will open a web browser where you can:
-- Select a breakout candidate from a dropdown menu (sorted by breakout index).
-- View their similarity to elite performers.
-- Compare their 2024 and 2025 metrics if available.
-- Explore how similar non-candidates relate to elite performance metrics.
+You can then explore:
 
-### Notes
+Stat trends for breakout candidates
 
-- All CSV data files must be placed in the same directory as the scripts.
-- Only players who did not appear in 2022 or 2023 are considered breakout candidates.
-- Established players from other seasons are used as comparison references only.
+Historical analogs with projections
 
+Stat-by-stat visual comparisons
