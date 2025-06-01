@@ -81,3 +81,5 @@ Stat trends for breakout candidates
 Historical analogs with projections
 
 Stat-by-stat visual comparisons
+
+**The app is also accessible [here](https://mlbprediction.streamlit.app/).**
