@@ -2,7 +2,9 @@ import pandas as pd
 import numpy as np
 
 def load_local_batting_data(batting_path: str = "batting.csv") -> pd.DataFrame:
-    """ """
+    """ Loads core batting data from batting.csv, merges Statcast expected stats (xwOBA, xBA, xSLG, etc.) and exit velocity data from separate CSVs for 2023 and 2024.
+        fills missing Statcast ages for newer players from external supplemental CSVs (mlb-player-stats-Batters2023.csv and 2024.csv).
+    """
     # Load primary batting data
     df = pd.read_csv("batting.csv")
     df["player_id"] = df["player_id"].astype(str)

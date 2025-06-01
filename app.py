@@ -36,8 +36,27 @@ name_map = dict(zip(candidates_df['first_last_name'], candidates_df['last_name, 
 # Streamlit UI
 st.title("MLB Breakout Candidates Viewer")
 
+st.markdown("""
+### Methodology Overview
+
+#### 1. Historical Player Comparison (Similarity Matching)
+This method compares each breakout candidate's weighted average offensive metrics (e.g., `exit_velocity`, `xwOBA`, `xBA`) from their first two seasons to those of historical players using Euclidean distance. A candidate is "matched" to the most statistically similar player who also had two qualifying early seasons before 2023.
+
+**Purpose**: Project the breakout candidate’s future performance by averaging the matched historical player's production over the next 3–5 years.
+
+#### 2. Linear Regression Forecasting
+In parallel with the similarity method, a linear regression model is fitted using historical players’ early stats and their future production growth. This regression is then applied to the breakout candidates to predict their trajectory based on trends learned from historical outcomes.
+
+**Purpose**: Provide an alternate, generalized projection using statistical modeling rather than individual comparisons.
+
+#### 3. Superstar Similarity & Breakout Score
+- **Superstar Similarity Score**: Measures how close a player’s stats are to the top 5% of all 2025 players using z-scored Euclidean distance. The higher (less negative) the score, the more "superstar-like" the player is.
+- **Breakout Score**: The weighted average of all key performance metrics.
+- **Breakout Index**: A composite metric calculated as a blend of breakout score and superstar similarity.
+""")
+
 # Interactive Scatter Plot
-st.subheader("Breakout Profile: Similarity vs. Breakout Score")
+st.subheader("Breakout Profile")
 fig = px.scatter(
     candidates_df,
     x='superstar_similarity',
@@ -88,7 +107,7 @@ if not player_row.empty:
 
     player_index = player_row.index[0]
 
-    # Breakout/Similarity rank
+    # Breakout/Similarity/Index rank
     breakout_sorted = candidates_df.sort_values(by='breakout_score', ascending=False).reset_index()
     breakout_rank = breakout_sorted[breakout_sorted['last_name, first_name'] == selected_name].index[0] + 1
     breakout_total = len(breakout_sorted)
@@ -96,6 +115,10 @@ if not player_row.empty:
     similarity_sorted = candidates_df.sort_values(by='superstar_similarity', ascending=False).reset_index()
     similarity_rank = similarity_sorted[similarity_sorted['last_name, first_name'] == selected_name].index[0] + 1
     similarity_total = len(similarity_sorted)
+
+    index_sorted = candidates_df.sort_values(by='breakout_index', ascending=False).reset_index()
+    index_rank = index_sorted[similarity_sorted['last_name, first_name'] == selected_name].index[0] + 1
+    index_total = len(index_sorted)
 
     # Row 1: 4 metrics
     row1 = st.columns(4)
@@ -123,7 +146,11 @@ if not player_row.empty:
         f"{player_row.iloc[0]['superstar_similarity']:.3f}",
         f"Rank: {similarity_rank} / {similarity_total}"
     )
-    row3[2].empty()
+    row3[2].metric(
+        "Breakout Index",
+        f"{player_row.iloc[0]['breakout_index']:.3f}",
+        f"Rank: {index_rank} / {index_total}"
+    )
     row3[3].empty()
     
 else:
@@ -138,7 +165,7 @@ if not match_row.empty:
     match_name = match_row['match_name'].iloc[0]
     st.markdown(f"""
     **Historical Comparison:** {match_name}  
-    This projection assumes that **{selected_first_last}** progresses similarly to how **{match_name}** did over their career.  
+    This projection assumes that **{selected_first_last}** progresses similarly to how **{match_name}** did **OFFENSIVELY** over their career.  
     The historical projection you're seeing below are what we'd expect if this trend continues year-over-year.
     """)
 else:
@@ -171,7 +198,6 @@ if not player_proj.empty:
     st.pyplot(fig)
 else:
     st.warning("No projection data available for this player.")
-
 
 
 # Define keys for a stat based leaderboard
@@ -218,14 +244,16 @@ selected_label = st.session_state.selected_label
 candidates_df['rank'] = candidates_df[selected_stat].rank(method="min", ascending=False)
 candidates_df_sorted = candidates_df.sort_values(by=selected_stat, ascending=False)
 
+
 st.markdown(f"#### Top Players by **{selected_label}**")
 st.dataframe(
-    candidates_df_sorted[['first_last_name', selected_stat, 'rank']]
+    candidates_df_sorted[['first_last_name', selected_stat]]
     .rename(columns={
         'first_last_name': 'Player',
         selected_stat: selected_label,
-        'rank': 'Rank'
     })
-    .style.format({selected_label: "{:.3f}", 'Rank': '{:.0f}'}),
+    .reset_index(drop=True)
+    .style.format({selected_label: "{:.3f}", 'Rank': '{:.0f}'})
+    .hide(axis="index"),
     use_container_width=True
 )
