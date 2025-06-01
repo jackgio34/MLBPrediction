@@ -17,7 +17,7 @@ The pipeline performs the following:
 
 ## Included Files
 
-### 🔧 Scripts
+### Scripts
 
 - `main.py` – Entry point to run the full data pipeline and generate all outputs.
 - `data_loader.py` – Loads and merges all Statcast and age data; cleans and aligns required metrics.
@@ -59,12 +59,12 @@ The following advanced metrics are calculated and compared:
 
 Ensure Python 3.8+ is installed. Then install dependencies:
 
-  pip install pandas numpy scikit-learn matplotlib plotly streamlit
+``` pip install pandas numpy scikit-learn matplotlib plotly streamlit ```
 
 ### Step 2: Generate Breakout Candidates
 Run the data processing script to generate breakout candidates:
 
-  python main.py
+``` python main.py ```
 
 This will output linear_reg_projected_breakouts, historic_projected_breakouts, and breakout_candidate_metrics.csv.
 
@@ -72,7 +72,7 @@ This will output linear_reg_projected_breakouts, historic_projected_breakouts, a
 
 Start the interactive dashboard with:
 
-  streamlit run app.py
+``` streamlit run app.py ```
 
 You can then explore:
 
