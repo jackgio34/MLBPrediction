@@ -36,7 +36,7 @@ The pipeline performs the following:
 - `breakout_candidate_metrics.csv` – Final list of candidate players with scores and raw metrics.
 - `historic_projected_breakouts.csv`, `linear_reg_projected_breakouts.csv` – Future stat projections by method.
 
-## 📈 Key Metrics
+## Key Metrics
 
 The following advanced metrics are calculated and compared:
 
@@ -49,7 +49,7 @@ The following advanced metrics are calculated and compared:
 | `xwoba`               | Expected weighted on-base average                       |
 | `xba`                 | Expected batting average                                |
 | `xslg`                | Expected slugging percentage                            |
-| `player_age`          | Derived or merged player age by season                 |
+| `player_age`          | Derived or merged player age by season                  |
 | `breakout_score`      | Overall breakout potential score                        |
 | `superstar_similarity`| Similarity score to historical superstar performance    |
 
