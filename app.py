@@ -52,15 +52,15 @@ fig = px.scatter(
 st.plotly_chart(fig, use_container_width=True)
 
 # Sort players by breakout score (highest first)
-sorted_candidates = candidates_df.sort_values(by='breakout_score', ascending=False)
+sorted_candidates = candidates_df.sort_values(by='first_last_name', ascending=False)
 sorted_names = sorted_candidates['first_last_name'].tolist()
 
 # Update name map for consistent lookups
 name_map = dict(zip(sorted_candidates['first_last_name'], sorted_candidates['last_name, first_name']))
 
-# Display dropdown sorted by breakout score
+# Display dropdown sorted by first name
 selected_first_last = st.selectbox(
-    "Select a breakout candidate (ranked by breakout score):",
+    "Select a breakout candidate:",
     sorted_names,
     key="candidate_dropdown"
 )
@@ -68,7 +68,7 @@ selected_first_last = st.selectbox(
 # Convert back to original name format for filtering
 selected_name = name_map[selected_first_last]
 
-# --- Display Key Stats ---
+# Display Key Stats
 st.subheader("Key Statcast Metrics")
 metrics_to_show = {
     'breakout_score': 'Breakout Score',
@@ -83,12 +83,52 @@ metrics_to_show = {
 }
 
 player_row = candidates_df[candidates_df['last_name, first_name'] == selected_name]
+
 if not player_row.empty:
-    for stat, label in metrics_to_show.items():
-        value = player_row.iloc[0][stat]
-        st.metric(label, f"{value:.3f}")
+
+    player_index = player_row.index[0]
+
+    # Breakout/Similarity rank
+    breakout_sorted = candidates_df.sort_values(by='breakout_score', ascending=False).reset_index()
+    breakout_rank = breakout_sorted[breakout_sorted['last_name, first_name'] == selected_name].index[0] + 1
+    breakout_total = len(breakout_sorted)
+
+    similarity_sorted = candidates_df.sort_values(by='superstar_similarity', ascending=False).reset_index()
+    similarity_rank = similarity_sorted[similarity_sorted['last_name, first_name'] == selected_name].index[0] + 1
+    similarity_total = len(similarity_sorted)
+
+    # Row 1: 4 metrics
+    row1 = st.columns(4)
+    row1[0].metric("Avg Exit Velocity (mph)", f"{player_row.iloc[0]['exit_velocity_avg']:.3f}")
+    row1[1].metric("Avg Launch Angle (°)", f"{player_row.iloc[0]['launch_angle_avg']:.3f}")
+    row1[2].metric("Barrel Rate (%)", f"{player_row.iloc[0]['barrel_batted_rate']:.3f}")
+    row1[3].metric("Hard Hit %", f"{player_row.iloc[0]['hard_hit_percent']:.3f}")
+
+    # Row 2: 4 columns, 3 metrics + 1 empty for alignment
+    row2 = st.columns(4)
+    row2[0].metric("xBA", f"{player_row.iloc[0]['xba']:.3f}")
+    row2[1].metric("xSLG", f"{player_row.iloc[0]['xslg']:.3f}")
+    row2[2].metric("xwOBA", f"{player_row.iloc[0]['xwoba']:.3f}")
+    row2[3].empty()  # Padding for alignment
+
+    # Row 3 (Ranked Scores)
+    row3 = st.columns(4)
+    row3[0].metric(
+        "Breakout Score",
+        f"{player_row.iloc[0]['breakout_score']:.3f}",
+        f"Rank: {breakout_rank} / {breakout_total}"
+    )
+    row3[1].metric(
+        "Superstar Similarity",
+        f"{player_row.iloc[0]['superstar_similarity']:.3f}",
+        f"Rank: {similarity_rank} / {similarity_total}"
+    )
+    row3[2].empty()
+    row3[3].empty()
+    
 else:
     st.warning("Player data not found.")
+
 
 st.subheader("Comparison Player & Projection Context")
 
@@ -131,3 +171,61 @@ if not player_proj.empty:
     st.pyplot(fig)
 else:
     st.warning("No projection data available for this player.")
+
+
+
+# Define keys for a stat based leaderboard
+stat_buttons = {
+    "Breakout Score": "breakout_score",
+    "Superstar Similarity": "superstar_similarity",
+    "Avg Exit Velocity": "exit_velocity_avg",
+    "Barrel Rate": "barrel_batted_rate",
+    "Hard Hit %": "hard_hit_percent",
+    "xwOBA": "xwoba",
+    "xBA": "xba",
+    "xSLG": "xslg"
+}
+
+# Split buttons into two rows
+row1_labels = list(stat_buttons.keys())[:4]
+row2_labels = list(stat_buttons.keys())[4:]
+
+st.markdown("### Stat-Based Leaderboards")
+
+# Render first row of buttons
+cols1 = st.columns(len(row1_labels))
+for i, label in enumerate(row1_labels):
+    if cols1[i].button(label, key=f"stat_button_1_{label}"):
+        st.session_state.selected_leaderboard_stat = stat_buttons[label]
+        st.session_state.selected_label = label
+
+# Render second row of buttons
+cols2 = st.columns(len(row2_labels))
+for i, label in enumerate(row2_labels):
+    if cols2[i].button(label, key=f"stat_button_2_{label}"):
+        st.session_state.selected_leaderboard_stat = stat_buttons[label]
+        st.session_state.selected_label = label
+
+# Set defaults if none selected yet
+if "selected_leaderboard_stat" not in st.session_state:
+    st.session_state.selected_leaderboard_stat = "breakout_score"
+    st.session_state.selected_label = "Breakout Score"
+
+selected_stat = st.session_state.selected_leaderboard_stat
+selected_label = st.session_state.selected_label
+
+# Compute proper rankings using rank()
+candidates_df['rank'] = candidates_df[selected_stat].rank(method="min", ascending=False)
+candidates_df_sorted = candidates_df.sort_values(by=selected_stat, ascending=False)
+
+st.markdown(f"#### Top Players by **{selected_label}**")
+st.dataframe(
+    candidates_df_sorted[['first_last_name', selected_stat, 'rank']]
+    .rename(columns={
+        'first_last_name': 'Player',
+        selected_stat: selected_label,
+        'rank': 'Rank'
+    })
+    .style.format({selected_label: "{:.3f}", 'Rank': '{:.0f}'}),
+    use_container_width=True
+)
