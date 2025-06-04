@@ -97,18 +97,6 @@ def match_and_project(candidate_df: pd.DataFrame, reference_df: pd.DataFrame, fu
             for metric in metrics:
                 hist_proj[metric] = candidate[metric] + diffs[metric].cumsum()
 
-            # Check if years 2-4 are identical (i.e., no increase beyond year 1)
-            flat_growth = all(
-                np.isclose(hist_proj.loc[i, metric], hist_proj.loc[i - 1, metric])
-                for metric in metrics for i in range(2, 4)
-            )
-
-            if flat_growth:
-            # Apply 1% compound increase per year based on candidate's stat
-                for i in range(4):
-                    for metric in metrics:
-                        hist_proj.at[i, metric] = candidate[metric]+ candidate[metric] * 1.01 ** (i + 1)
-
             # Add identifying info
             hist_proj.insert(0, 'last_name, first_name', candidate['last_name, first_name'])
             hist_proj.insert(1, 'match_name', match_name)
@@ -131,7 +119,6 @@ def match_and_project(candidate_df: pd.DataFrame, reference_df: pd.DataFrame, fu
 
                 projections_reg.append(reg_proj)
         except Exception as e:
-            print(f"Skipping player {candidate['last_name, first_name']} due to error: {e}")
             continue
 
     hist_proj_df = pd.concat(projections_hist, ignore_index=True) if projections_hist else pd.DataFrame()

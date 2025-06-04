@@ -21,6 +21,7 @@ breakout_candidates_df = filter_breakout_candidates(batting_df)
 print("Calculating weighted averages for recent seasons...")
 weighted_df = calculate_weighted_averages(breakout_candidates_df)
 
+# Filter for reference players
 print("Preparing reference dataset of established players...")
 reference_df = build_projection_reference(batting_df)
 
